@@ -76,11 +76,10 @@ export default function Dashboard() {
 
   const fullName = `${user.firstName} ${user.lastName}`;
   const verified = user.identityVerification?.status === "APPROVED";
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+return (
+    <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:gap-6 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
       {/* LEFT - mini profile / org card */}
-      <aside className="order-1 space-y-4 lg:sticky lg:top-20 lg:self-start">
+<aside className="order-1 min-w-0 space-y-4 xl:sticky xl:top-20 xl:self-start">
         <Card className="overflow-hidden p-0">
           <div className="h-14 bg-gradient-to-r from-brand-600 to-indigo-600" />
           <div className="px-4 pb-4">
@@ -172,7 +171,7 @@ export default function Dashboard() {
       </aside>
 
       {/* CENTER - spotlight + feed */}
-      <div className="order-3 space-y-6 lg:order-2">
+      <div className="order-2 min-w-0 space-y-4 sm:space-y-5 xl:order-2 xl:space-y-6">
         {events.length > 0 && <SpotlightCarousel events={events} />}
 
         <Card className="p-5">
@@ -257,9 +256,9 @@ export default function Dashboard() {
       </div>
 
       {/* RIGHT - quick actions */}
-      <div className="order-2 space-y-6 lg:order-3">
+      <div className="order-3 min-w-0 space-y-4 sm:space-y-5 xl:order-3 xl:space-y-6">
         {user.role === "ATHLETE" && (
-          <Card className="p-5">
+<Card className="p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <ClipboardList size={16} className="text-brand-600" /> My applications
