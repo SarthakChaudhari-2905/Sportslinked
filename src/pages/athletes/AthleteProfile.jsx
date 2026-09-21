@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   MapPin,
   BadgeCheck,
@@ -14,9 +14,19 @@ import {
   Award,
   FileBadge,
   Video as VideoIcon,
+  UserPlus,
+  MessageCircle,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { athleteProfileApi, achievementApi, certificateApi, videoApi } from "../../lib/endpoints";
+import {
+  athleteProfileApi,
+  achievementApi,
+  certificateApi,
+  videoApi,
+  connectionApi,
+  messageApi,
+} from "../../lib/endpoints";
 import { Card, Badge, Avatar, PageSpinner, EmptyState, Button, formatDate, titleCase } from "../../components/ui";
 import { getErrorMessage } from "../../lib/api";
 
@@ -94,9 +104,7 @@ export default function AthleteProfile({ mine = false }) {
                   <Pencil size={14} /> Edit profile
                 </Link>
               )}
-              {!isOwn && authUser?.role !== "ATHLETE" && (
-                <ApplyOrConnectHint />
-              )}
+              {!isOwn && <ConnectAction targetUserId={u._id} />}
             </div>
             <div className="mt-3 flex items-center gap-1.5">
               <h1 className="text-xl font-bold text-slate-900">{fullName || u.username}</h1>
@@ -104,7 +112,7 @@ export default function AthleteProfile({ mine = false }) {
             </div>
             <p className="text-sm text-slate-500">
               {titleCase(profile.primarySport)}
-              {profile.position ? ` Â· ${titleCase(profile.position)}` : ""} Â· {titleCase(profile.playingLevel)}
+              {profile.position ? ` - ${titleCase(profile.position)}` : ""} - {titleCase(profile.playingLevel)}
             </p>
             {profile.location?.city && (
               <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
@@ -163,7 +171,7 @@ export default function AthleteProfile({ mine = false }) {
                     <Badge>{titleCase(a.category)}</Badge>
                   </div>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {titleCase(a.sport)} {a.organization ? `Â· ${a.organization}` : ""} Â· {formatDate(a.achievementDate)}
+                    {titleCase(a.sport)} {a.organization ? `- ${a.organization}` : ""} - {formatDate(a.achievementDate)}
                   </p>
                   {a.description && <p className="mt-1 text-xs text-slate-600">{a.description}</p>}
                 </div>
@@ -189,7 +197,7 @@ export default function AthleteProfile({ mine = false }) {
                     </Badge>
                   </div>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {c.issuingOrganization} Â· {formatDate(c.issueDate)}
+                    {c.issuingOrganization} - {formatDate(c.issueDate)}
                   </p>
                 </div>
               ))}
@@ -298,9 +306,100 @@ function availabilityTone(status) {
   return "amber";
 }
 
-function ApplyOrConnectHint() {
+// Connect / Message action shown on someone else's profile. Status is
+// derived from the viewer's own connections list since there's no
+// single "status with user X" endpoint.
+function ConnectAction({ targetUserId }) {
+  const navigate = useNavigate();
+  const [status, setStatus] = useState("LOADING"); // LOADING | NONE | PENDING_OUT | PENDING_IN | ACCEPTED
+  const [connectionId, setConnectionId] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await connectionApi.mine();
+        const list = data?.connections || [];
+        const match = list.find((c) => c.otherUser?._id === targetUserId);
+
+        if (cancelled) return;
+
+        if (!match) {
+          setStatus("NONE");
+        } else if (match.status === "ACCEPTED") {
+          setStatus("ACCEPTED");
+          setConnectionId(match._id);
+        } else if (match.direction === "OUTGOING") {
+          setStatus("PENDING_OUT");
+        } else {
+          setStatus("PENDING_IN");
+          setConnectionId(match._id);
+        }
+      } catch {
+        if (!cancelled) setStatus("NONE");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [targetUserId]);
+
+  const handleConnect = async () => {
+    setBusy(true);
+    try {
+      await connectionApi.request(targetUserId);
+      setStatus("PENDING_OUT");
+    } catch {
+      // Leave status as-is; the person can retry.
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    setBusy(true);
+    try {
+      const data = await messageApi.createConversation(targetUserId);
+      const id = data?.conversation?._id || data?._id;
+      if (id) navigate(`/messages?conversation=${id}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (status === "LOADING") return <div className="mt-12" />;
+
+  if (status === "ACCEPTED") {
+    return (
+      <Button variant="secondary" className="mt-12" onClick={handleMessage} loading={busy}>
+        <MessageCircle size={14} /> Message
+      </Button>
+    );
+  }
+
+  if (status === "PENDING_OUT") {
+    return (
+      <Button variant="secondary" className="mt-12" disabled>
+        <Clock size={14} /> Request sent
+      </Button>
+    );
+  }
+
+  if (status === "PENDING_IN") {
+    return (
+      <Link to="/network" className="btn-secondary mt-12">
+        <UserPlus size={14} /> Respond to request
+      </Link>
+    );
+  }
+
   return (
-    <p className="mt-12 text-xs text-slate-400">Reach out via an event application to connect.</p>
+    <Button className="mt-12" onClick={handleConnect} loading={busy}>
+      <UserPlus size={14} /> Connect
+    </Button>
   );
 }
 

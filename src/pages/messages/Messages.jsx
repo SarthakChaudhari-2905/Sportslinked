@@ -1,256 +1,138 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import {
-  MessageCircle,
-  Send,
-  Search,
-  Users,
-} from "lucide-react";
+import { MessageCircle, Send, Search, Users } from "lucide-react";
 
-import {
-  messageApi,
-} from "../../lib/endpoints";
+import { messageApi } from "../../lib/endpoints";
+import { getAccessToken } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
-import {
-  getAccessToken,
-} from "../../lib/api";
+import { Avatar, Button, EmptyState, Input, PageSpinner, titleCase } from "../../components/ui";
 
-import {
-  Avatar,
-  Button,
-  EmptyState,
-  Input,
-  PageSpinner,
-} from "../../components/ui";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api/v1";
-
-const SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  API_BASE.replace(
-    /\/api\/v1\/?$/,
-    ""
-  );
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE.replace(/\/api\/v1\/?$/, "");
 
 export default function Messages() {
-  const [params] =
-    useSearchParams();
+  const { user: currentUser } = useAuth();
+  const [params] = useSearchParams();
 
-  const requestedConversation =
-    params.get("conversation");
+  const requestedConversation = params.get("conversation");
 
-  const [conversations, setConversations] =
-    useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [conversationSearch, setConversationSearch] = useState("");
+  const [activeId, setActiveId] = useState(requestedConversation || null);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  const [activeId, setActiveId] =
-    useState(
-      requestedConversation || null
-    );
+  const socketRef = useRef(null);
+  const bottomRef = useRef(null);
 
-  const [messages, setMessages] =
-    useState([]);
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c._id === activeId),
+    [conversations, activeId]
+  );
 
-  const [text, setText] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [loadingMessages, setLoadingMessages] =
-    useState(false);
-
-  const socketRef =
-    useRef(null);
-
-  const bottomRef =
-    useRef(null);
-
-  const activeConversation =
-    useMemo(
-      () =>
-        conversations.find(
-          (c) =>
-            c._id === activeId
-        ),
-      [
-        conversations,
-        activeId,
-      ]
-    );
-
-  const getOtherUser = (
-    conversation
-  ) => {
-    const token =
-      localStorage.getItem(
-        "sportlinked-user-id"
-      );
-
+  // The "other" participant is whoever in the conversation isn't the
+  // logged-in user - determined from the auth context, not localStorage
+  // (the conversation itself has no notion of "me" until compared here).
+  const getOtherUser = (conversation) => {
     return (
-      conversation?.participants?.find(
-        (p) =>
-          p._id !== token
-      ) ||
+      conversation?.participants?.find((p) => p._id !== currentUser?._id) ||
       conversation?.participants?.[0]
     );
   };
 
-  const loadConversations =
-    async () => {
-      const data =
-        await messageApi.conversations();
+  const filteredConversations = useMemo(() => {
+    const query = conversationSearch.trim().toLowerCase();
+    if (!query) return conversations;
+    return conversations.filter((conversation) => {
+      const other = getOtherUser(conversation);
+      const name = `${other?.firstName || ""} ${other?.lastName || ""} ${other?.username || ""}`.toLowerCase();
+      return name.includes(query);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations, conversationSearch, currentUser]);
 
-      const list =
-        data?.conversations ||
-        [];
+  const loadConversations = async () => {
+    const data = await messageApi.conversations();
+    const list = data?.conversations || [];
+    setConversations(list);
 
-      setConversations(list);
+    if (!activeId && list.length) {
+      setActiveId(list[0]._id);
+    }
 
-      if (
-        !activeId &&
-        list.length
-      ) {
-        setActiveId(
-          list[0]._id
-        );
-      }
+    return list;
+  };
 
-      return list;
-    };
-
-  const loadMessages = async (
-    conversationId
-  ) => {
-    if (!conversationId)
-      return;
+  const loadMessages = async (conversationId) => {
+    if (!conversationId) return;
 
     setLoadingMessages(true);
 
     try {
-      const data =
-        await messageApi.messages(
-          conversationId
-        );
+      const data = await messageApi.messages(conversationId);
+      setMessages(data?.messages || []);
 
-      setMessages(
-        data?.messages || []
-      );
+      await messageApi.markRead(conversationId);
 
-      await messageApi.markRead(
-        conversationId
-      );
-
-      setConversations(
-        (items) =>
-          items.map((item) =>
-            item._id ===
-            conversationId
-              ? {
-                  ...item,
-                  unreadCount: 0,
-                }
-              : item
-          )
+      setConversations((items) =>
+        items.map((item) => (item._id === conversationId ? { ...item, unreadCount: 0 } : item))
       );
     } finally {
-      setLoadingMessages(
-        false
-      );
+      setLoadingMessages(false);
     }
   };
 
   useEffect(() => {
     loadConversations()
       .catch(() => {})
-      .finally(() =>
-        setLoading(false)
-      );
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (requestedConversation) {
-      setActiveId(
-        requestedConversation
-      );
+      setActiveId(requestedConversation);
     }
-  }, [
-    requestedConversation,
-  ]);
+  }, [requestedConversation]);
 
   useEffect(() => {
     if (!activeId) return;
 
-    loadMessages(
-      activeId
-    ).catch(() => {});
+    loadMessages(activeId).catch(() => {});
 
     if (socketRef.current) {
-      socketRef.current.emit(
-        "conversation:join",
-        activeId
-      );
+      socketRef.current.emit("conversation:join", activeId);
     }
   }, [activeId]);
 
   useEffect(() => {
-    const token =
-      getAccessToken();
+    const token = getAccessToken();
 
     if (!token) return;
 
-    const socket = io(
-      SOCKET_URL,
-      {
-        auth: {
-          token,
-        },
-        transports: [
-          "websocket",
-        ],
+    const socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("message:new", (message) => {
+      if (message.conversation === activeId || message.conversation?._id === activeId) {
+        setMessages((items) => [...items, message]);
+        messageApi.markRead(activeId);
       }
-    );
 
-    socketRef.current =
-      socket;
+      loadConversations().catch(() => {});
+    });
 
-    socket.on(
-      "message:new",
-      (message) => {
-        if (
-          message.conversation ===
-          activeId ||
-          message.conversation?._id ===
-            activeId
-        ) {
-          setMessages(
-            (items) => [
-              ...items,
-              message,
-            ]
-          );
-
-          messageApi.markRead(
-            activeId
-          );
-        }
-
-        loadConversations().catch(
-          () => {}
-        );
-      }
-    );
-
-    socket.on(
-      "conversation:updated",
-      () => {
-        loadConversations().catch(
-          () => {}
-        );
-      }
-    );
+    socket.on("conversation:updated", () => {
+      loadConversations().catch(() => {});
+    });
 
     return () => {
       socket.disconnect();
@@ -259,107 +141,63 @@ export default function Messages() {
   }, [activeId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView(
-      {
-        behavior: "smooth",
-      }
-    );
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const send = async (e) => {
     e.preventDefault();
 
-    const value =
-      text.trim();
+    const value = text.trim();
 
-    if (
-      !value ||
-      !activeId
-    ) {
+    if (!value || !activeId) {
       return;
     }
 
     setText("");
 
     try {
-      const data =
-        await messageApi.send(
-          activeId,
-          {
-            text: value,
-          }
-        );
+      const data = await messageApi.send(activeId, { text: value });
+      const sent = data?.message;
 
-      const sent =
-        data?.message;
-
-      /*
-       * Socket also emits this message.
-       * Don't duplicate it if socket is active.
-       */
-      if (
-        sent &&
-        !socketRef.current?.connected
-      ) {
-        setMessages(
-          (items) => [
-            ...items,
-            sent,
-          ]
-        );
+      // Socket also emits this message. Don't duplicate it if socket is active.
+      if (sent && !socketRef.current?.connected) {
+        setMessages((items) => [...items, sent]);
       }
 
-      loadConversations().catch(
-        () => {}
-      );
+      loadConversations().catch(() => {});
     } catch {
       setText(value);
     }
   };
 
   if (loading) {
-    return (
-      <PageSpinner label="Loading messages..." />
-    );
+    return <PageSpinner label="Loading messages..." />;
   }
 
   return (
-    <div className="h-[calc(100vh-7rem)] min-h-[600px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-
+    <div className="h-[calc(100vh-7rem)] min-h-[600px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="grid h-full md:grid-cols-[320px_1fr]">
-
         {/* Conversation list */}
-
-        <aside className="border-r border-slate-200 bg-slate-50">
-
-          <div className="border-b border-slate-200 p-5">
+        <aside className="flex flex-col border-r border-slate-200 bg-slate-50">
+          <div className="border-b border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2">
-              <MessageCircle
-                className="text-brand-600"
-                size={20}
-              />
-
-              <h1 className="text-xl font-black text-slate-900">
-                Messages
-              </h1>
+              <MessageCircle className="text-brand-600" size={19} />
+              <h1 className="text-lg font-bold text-slate-900">Messaging</h1>
             </div>
 
-            <div className="relative mt-4">
-              <Search
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
+            <div className="relative mt-3">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
+                value={conversationSearch}
+                onChange={(e) => setConversationSearch(e.target.value)}
                 placeholder="Search conversations"
-                className="pl-9"
+                className="rounded-full pl-9 text-sm"
               />
             </div>
           </div>
 
-          <div className="max-h-[calc(100%-110px)] overflow-y-auto">
-            {conversations.length ===
-            0 ? (
+          <div className="flex-1 overflow-y-auto">
+            {conversations.length === 0 ? (
               <div className="p-5">
                 <EmptyState
                   icon={Users}
@@ -367,206 +205,113 @@ export default function Messages() {
                   description="Connect with someone from Network to start messaging."
                 />
               </div>
+            ) : filteredConversations.length === 0 ? (
+              <p className="p-5 text-center text-sm text-slate-400">No conversations match "{conversationSearch}".</p>
             ) : (
-              conversations.map(
-                (conversation) => {
-                  const other =
-                    getOtherUser(
-                      conversation
-                    );
+              filteredConversations.map((conversation) => {
+                const other = getOtherUser(conversation);
+                const name = `${other?.firstName || ""} ${other?.lastName || ""}`.trim() || other?.username || "User";
 
-                  const name =
-                    `${other?.firstName || ""} ${
-                      other?.lastName || ""
-                    }`.trim() ||
-                    other?.username ||
-                    "User";
+                return (
+                  <button
+                    key={conversation._id}
+                    onClick={() => setActiveId(conversation._id)}
+                    className={`flex w-full gap-3 border-b border-slate-100 p-3.5 text-left transition ${
+                      activeId === conversation._id ? "bg-white shadow-[inset_2px_0_0_0_theme(colors.brand.600)]" : "hover:bg-white"
+                    }`}
+                  >
+                    <Avatar name={name} src={other?.avatar} size={44} />
 
-                  return (
-                    <button
-                      key={
-                        conversation._id
-                      }
-                      onClick={() =>
-                        setActiveId(
-                          conversation._id
-                        )
-                      }
-                      className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left transition ${
-                        activeId ===
-                        conversation._id
-                          ? "bg-white shadow-inner"
-                          : "hover:bg-white"
-                      }`}
-                    >
-                      <Avatar
-                        name={name}
-                        src={
-                          other?.avatar
-                        }
-                        size={44}
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-bold text-slate-800">
-                            {name}
-                          </p>
-
-                          {conversation.unreadCount >
-                            0 && (
-                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[10px] font-bold text-white">
-                              {
-                                conversation.unreadCount
-                              }
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="mt-1 truncate text-xs text-slate-400">
-                          {conversation.lastMessageText ||
-                            "Start a conversation"}
-                        </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-slate-800">{name}</p>
+                        {conversation.unreadCount > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[10px] font-bold text-white">
+                            {conversation.unreadCount}
+                          </span>
+                        )}
                       </div>
-                    </button>
-                  );
-                }
-              )
+                      <p className="mt-0.5 truncate text-xs text-slate-400">
+                        {conversation.lastMessageText || "Start a conversation"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </aside>
 
         {/* Chat */}
-
-        <main className="flex min-w-0 flex-col">
-
+        <main className="flex min-w-0 flex-col bg-slate-50">
           {!activeConversation ? (
             <div className="flex flex-1 items-center justify-center">
               <EmptyState
-                icon={
-                  MessageCircle
-                }
+                icon={MessageCircle}
                 title="Select a conversation"
                 description="Choose someone from your network to start chatting."
               />
             </div>
           ) : (
             <>
-              <header className="flex items-center gap-3 border-b border-slate-200 p-4">
+              <header className="flex items-center gap-3 border-b border-slate-200 bg-white p-4">
                 <Avatar
                   name={`${getOtherUser(activeConversation)?.firstName || ""} ${
                     getOtherUser(activeConversation)?.lastName || ""
                   }`}
-                  src={
-                    getOtherUser(
-                      activeConversation
-                    )?.avatar
-                  }
+                  src={getOtherUser(activeConversation)?.avatar}
                   size={42}
                 />
-
                 <div>
                   <p className="font-bold text-slate-900">
-                    {getOtherUser(
-                      activeConversation
-                    )?.firstName}{" "}
-                    {getOtherUser(
-                      activeConversation
-                    )?.lastName}
+                    {getOtherUser(activeConversation)?.firstName} {getOtherUser(activeConversation)?.lastName}
                   </p>
-
-                  <p className="text-xs text-slate-400">
-                    {getOtherUser(
-                      activeConversation
-                    )?.role}
-                  </p>
+                  <p className="text-xs text-slate-400">{titleCase(getOtherUser(activeConversation)?.role)}</p>
                 </div>
               </header>
 
-              <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-5">
+              <div className="flex-1 space-y-3 overflow-y-auto p-5">
                 {loadingMessages ? (
                   <PageSpinner label="Loading conversation..." />
-                ) : messages.length ===
-                  0 ? (
+                ) : messages.length === 0 ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <MessageCircle
-                        size={30}
-                        className="mx-auto text-brand-300"
-                      />
-
-                      <p className="mt-2 font-semibold text-slate-700">
-                        Start the conversation
-                      </p>
-
-                      <p className="text-sm text-slate-400">
-                        Talk about trials,
-                        opportunities or
-                        collaborations.
-                      </p>
+                      <MessageCircle size={30} className="mx-auto text-brand-300" />
+                      <p className="mt-2 font-semibold text-slate-700">Start the conversation</p>
+                      <p className="text-sm text-slate-400">Talk about trials, opportunities or collaborations.</p>
                     </div>
                   </div>
                 ) : (
-                  messages.map(
-                    (message) => {
-                      const mine =
-                        message.sender?._id !==
-                        getOtherUser(
-                          activeConversation
-                        )?._id;
+                  messages.map((message) => {
+                    const mine = message.sender?._id === currentUser?._id;
 
-                      return (
+                    return (
+                      <div key={message._id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div
-                          key={
-                            message._id
-                          }
-                          className={`flex ${
+                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                             mine
-                              ? "justify-end"
-                              : "justify-start"
+                              ? "rounded-br-md bg-brand-600 text-white"
+                              : "rounded-bl-md bg-white text-slate-700 shadow-sm"
                           }`}
                         >
-                          <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                              mine
-                                ? "rounded-br-md bg-brand-600 text-white"
-                                : "rounded-bl-md bg-white text-slate-700 shadow-sm"
-                            }`}
-                          >
-                            {message.text}
-                          </div>
+                          {message.text}
                         </div>
-                      );
-                    }
-                  )
+                      </div>
+                    );
+                  })
                 )}
-
                 <div ref={bottomRef} />
               </div>
 
-              <form
-                onSubmit={send}
-                className="border-t border-slate-200 bg-white p-4"
-              >
+              <form onSubmit={send} className="border-t border-slate-200 bg-white p-4">
                 <div className="flex gap-2">
                   <Input
                     value={text}
-                    onChange={(e) =>
-                      setText(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => setText(e.target.value)}
                     placeholder="Write a professional message..."
                     className="rounded-2xl"
                   />
-
-                  <Button
-                    type="submit"
-                    className="rounded-2xl px-5"
-                    disabled={
-                      !text.trim()
-                    }
-                  >
+                  <Button type="submit" className="rounded-2xl px-5" disabled={!text.trim()}>
                     <Send size={16} />
                   </Button>
                 </div>
@@ -578,3 +323,4 @@ export default function Messages() {
     </div>
   );
 }
+

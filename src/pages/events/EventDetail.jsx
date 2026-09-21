@@ -8,9 +8,10 @@ import {
   Pencil,
   Send,
   BadgeCheck,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { eventApi, applicationApi } from "../../lib/endpoints";
+import { eventApi, applicationApi, messageApi } from "../../lib/endpoints";
 import {
   Card,
   Badge,
@@ -38,6 +39,7 @@ export default function EventDetail() {
   const [error, setError] = useState("");
   const [applyOpen, setApplyOpen] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [messaging, setMessaging] = useState(false);
 
   const canManage = event && user && String(event.createdBy?._id) === String(user._id);
 
@@ -58,6 +60,20 @@ export default function EventDetail() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleMessageOrganizer = async () => {
+    if (!event?.createdBy?._id) return;
+    setMessaging(true);
+    try {
+      const data = await messageApi.createConversation(event.createdBy._id);
+      const conversationId = data?.conversation?._id || data?._id;
+      if (conversationId) navigate(`/messages?conversation=${conversationId}`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setMessaging(false);
+    }
+  };
 
   if (loading) return <PageSpinner label="Loading event..." />;
   if (error || !event) return <EmptyState title="Event not found" description={error} />;
@@ -121,7 +137,7 @@ export default function EventDetail() {
               <ul className="space-y-1 text-sm text-slate-600">
                 {(event.eligibility?.minimumAge || event.eligibility?.maximumAge) && (
                   <li>
-                    Age: {event.eligibility?.minimumAge || "Any"} â€“ {event.eligibility?.maximumAge || "Any"}
+                    Age: {event.eligibility?.minimumAge || "Any"} - {event.eligibility?.maximumAge || "Any"}
                   </li>
                 )}
                 {event.eligibility?.gender && event.eligibility.gender !== "ANY" && (
@@ -180,6 +196,12 @@ export default function EventDetail() {
             <Link to={`/events/${event._id}/applications`} className="btn-secondary mt-4 w-full">
               <Users size={15} /> View applications
             </Link>
+          )}
+
+          {!canManage && event.createdBy?._id && (
+            <Button variant="secondary" className="mt-2 w-full" onClick={handleMessageOrganizer} loading={messaging}>
+              <MessageCircle size={15} /> Message organizer
+            </Button>
           )}
         </Card>
 
