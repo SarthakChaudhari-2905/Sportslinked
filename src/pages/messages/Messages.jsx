@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 
 import { Avatar, Button, EmptyState, Input, PageSpinner, titleCase } from "../../components/ui";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://sportlinked-backend-1.onrender.com/api/v1";
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE.replace(/\/api\/v1\/?$/, "");
 
