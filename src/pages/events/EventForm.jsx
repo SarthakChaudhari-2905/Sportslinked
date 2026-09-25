@@ -174,12 +174,18 @@ export default function EventForm() {
         setSuccess("Event updated.");
         setTimeout(() => navigate(`/events/${id}`), 500);
       } else {
-        payload.organizationId = form.organizationId;
-        const created = await eventApi.create(payload);
-        const newId = created?.event?._id || created?._id;
-        setSuccess("Event created as draft. Publish it to make it visible to athletes.");
-        setTimeout(() => navigate(`/events/${newId}`), 700);
-      }
+  payload.organizationId = form.organizationId;
+
+  await eventApi.create(payload);
+
+  setSuccess(
+    "Event created as a draft. You can publish it from Manage events."
+  );
+
+  setTimeout(() => {
+    navigate(`/organization/${form.organizationId}/events`);
+  }, 700);
+}
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

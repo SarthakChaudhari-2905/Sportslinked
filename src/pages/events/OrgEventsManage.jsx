@@ -82,7 +82,11 @@ export default function OrgEventsManage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {ev.status === "DRAFT" && (
-                    <Button variant="secondary" onClick={() => handlePublish(ev._id)} loading={busyId === ev._id}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handlePublish(ev._id)}
+                      loading={busyId === ev._id}
+                    >
                       <UploadCloud size={14} /> Publish
                     </Button>
                   )}
