@@ -12,7 +12,6 @@ import {
   ErrorBanner,
   SuccessBanner,
   Avatar,
-  RemovePhotoButton,
   PageSpinner,
 } from "../../components/ui";
 import { getErrorMessage } from "../../lib/api";
@@ -109,19 +108,6 @@ export default function AthleteProfileEdit() {
     }
   };
 
-  const handleRemoveAvatar = async () => {
-    setAvatarUploading(true);
-    setError("");
-    try {
-      const { user: updated } = await authApi.updateMe({ avatar: "" });
-      updateUserLocal({ avatar: updated?.avatar || "" });
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
-
   const buildPayload = () => {
     const payload = {
       bio: form.bio || undefined,
@@ -190,14 +176,11 @@ export default function AthleteProfileEdit() {
       <Card className="mt-5 p-5">
         <div className="mb-5 flex items-center gap-4">
           <Avatar name={`${user.firstName} ${user.lastName}`} src={user.avatar} size={64} />
-          <div className="flex flex-wrap gap-2">
+          <div>
             <label className="btn-secondary cursor-pointer">
               {avatarUploading ? "Uploading..." : "Change photo"}
               <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </label>
-            {user.avatar && (
-              <RemovePhotoButton disabled={avatarUploading} onClick={handleRemoveAvatar} />
-            )}
           </div>
         </div>
 

@@ -14,7 +14,6 @@ import {
   SuccessBanner,
   PageSpinner,
   Avatar,
-  RemovePhotoButton,
   titleCase,
 } from "../../components/ui";
 import { getErrorMessage } from "../../lib/api";
@@ -110,7 +109,7 @@ export default function OrganizationEdit() {
         phone: form.phone || undefined,
         website: form.website || undefined,
         location: { city: form.city || undefined, state: form.state || undefined, country: form.country || undefined },
-        logoUrl: form.logoUrl,
+        logoUrl: form.logoUrl || undefined,
         coverImageUrl: form.coverImageUrl || undefined,
       };
       if (org) {
@@ -172,15 +171,10 @@ export default function OrganizationEdit() {
 
           <div className="flex items-center gap-4">
             <Avatar name={form.name || "Org"} src={form.logoUrl} size={56} />
-            <div className="flex flex-wrap gap-2">
-              <label className="btn-secondary cursor-pointer">
-                {uploading ? "Uploading..." : form.logoUrl ? "Change logo" : "Upload logo"}
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e, "logoUrl")} />
-              </label>
-              {form.logoUrl && (
-                <RemovePhotoButton disabled={uploading} onClick={() => update({ logoUrl: "" })} />
-              )}
-            </div>
+            <label className="btn-secondary cursor-pointer">
+              {uploading ? "Uploading..." : "Upload logo"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e, "logoUrl")} />
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,5 @@
 ﻿import clsx from "clsx";
-import { Link } from "react-router-dom";
-import { Loader2, Inbox, X, Trophy, Trash2 } from "lucide-react";
+import { Loader2, Inbox, X } from "lucide-react";
 
 export function Field({ label, htmlFor, error, hint, children }) {
   return (
@@ -59,83 +58,13 @@ export function Card({ className, children, ...props }) {
 
 export function Badge({ children, tone = "slate" }) {
   const tones = {
-    slate: "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200",
-    brand: "bg-brand-100 text-brand-800 ring-1 ring-inset ring-brand-200",
-    green: "bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200",
-    amber: "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200",
-    rose: "bg-rose-100 text-rose-800 ring-1 ring-inset ring-rose-200",
+    slate: "bg-slate-100 text-slate-700",
+    brand: "bg-brand-50 text-brand-700",
+    green: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    rose: "bg-rose-50 text-rose-700",
   };
   return <span className={clsx("badge", tones[tone])}>{children}</span>;
-}
-
-export function RemovePhotoButton({ onClick, disabled }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="btn-ghost text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-    >
-      <Trash2 size={15} /> Remove
-    </button>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="container-page grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <div className="flex items-center gap-2 text-slate-900">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-indigo-600 text-white">
-              <Trophy size={16} />
-            </span>
-            <span className="text-base font-extrabold">
-              Sport<span className="text-brand-600">Linked</span>
-            </span>
-          </div>
-          <p className="mt-3 max-w-xs text-sm text-slate-500">
-            The home for athletes, coaches and clubs to connect, compete and get discovered.
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Discover</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link to="/athletes" className="footer-link">Browse athletes</Link></li>
-            <li><Link to="/events" className="footer-link">Browse opportunities</Link></li>
-            <li><Link to="/network" className="footer-link">My network</Link></li>
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Account</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link to="/profile" className="footer-link">My profile</Link></li>
-            <li><Link to="/organization" className="footer-link">Organization</Link></li>
-            <li><Link to="/verification" className="footer-link">Verification</Link></li>
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Sports</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {["Football", "Cricket", "Basketball", "Tennis", "Hockey"].map((s) => (
-              <Link
-                key={s}
-                to={`/athletes?sport=${s.toLowerCase()}`}
-                className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-slate-100 py-4">
-        <p className="container-page text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} SportLinked. Built for athletes, coaches and clubs.
-        </p>
-      </div>
-    </footer>
-  );
 }
 
 export function Spinner({ size = 20, className }) {

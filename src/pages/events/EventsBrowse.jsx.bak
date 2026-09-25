@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, MapPin, CalendarDays, Plus, Trophy, Sparkles, Users, ShieldCheck } from "lucide-react";
+import { Search, MapPin, CalendarDays, Plus, Trophy } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { eventApi } from "../../lib/endpoints";
 import { Card, Input, Select, Badge, EmptyState, PageSpinner, Button, formatDate, titleCase } from "../../components/ui";
@@ -91,9 +91,9 @@ export default function EventsBrowse() {
               key={t}
               type="button"
               onClick={() => handleQuickType(t)}
-              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition hover:scale-105 ${
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                 type === t
-                  ? "border-white bg-white text-slate-900 shadow"
+                  ? "border-white bg-white text-slate-900"
                   : "border-white/25 bg-white/5 text-white hover:bg-white/15"
               }`}
             >
@@ -104,10 +104,10 @@ export default function EventsBrowse() {
       </div>
 
       {/* Search filters */}
-      <Card className="relative z-10 -mt-5 mx-2 border-brand-100 p-4 shadow-xl ring-1 ring-slate-900/5 sm:mx-6 sm:p-5">
+      <Card className="relative z-10 -mt-5 mx-2 p-4 shadow-lg sm:mx-6">
         <form onSubmit={runSearch} className="grid gap-3 sm:grid-cols-4">
           <div className="relative">
-            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-500" />
+            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input placeholder="Sport" value={sport} onChange={(e) => setSport(e.target.value)} className="pl-9" />
           </div>
           <Select value={type} onChange={(e) => setType(e.target.value)}>
@@ -118,46 +118,14 @@ export default function EventsBrowse() {
             ))}
           </Select>
           <div className="relative">
-            <MapPin size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-500" />
+            <MapPin size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="pl-9" />
           </div>
-          <Button type="submit" className="shadow-md shadow-brand-600/20">
+          <Button type="submit">
             <Search size={16} /> Search
           </Button>
         </form>
       </Card>
-
-      {/* Quick stats strip */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="stat-chip">
-          <span className="rounded-lg bg-brand-100 p-2 text-brand-700"><CalendarDays size={16} /></span>
-          <div>
-            <p className="text-sm font-extrabold text-slate-800">{events ? events.length : "—"}</p>
-            <p className="text-[11px] text-slate-500">Live opportunities</p>
-          </div>
-        </div>
-        <div className="stat-chip">
-          <span className="rounded-lg bg-emerald-100 p-2 text-emerald-700"><ShieldCheck size={16} /></span>
-          <div>
-            <p className="text-sm font-extrabold text-slate-800">Verified</p>
-            <p className="text-[11px] text-slate-500">Trusted organizations</p>
-          </div>
-        </div>
-        <div className="stat-chip">
-          <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><Sparkles size={16} /></span>
-          <div>
-            <p className="text-sm font-extrabold text-slate-800">New weekly</p>
-            <p className="text-[11px] text-slate-500">Fresh trials & camps</p>
-          </div>
-        </div>
-        <div className="stat-chip">
-          <span className="rounded-lg bg-indigo-100 p-2 text-indigo-700"><Users size={16} /></span>
-          <div>
-            <p className="text-sm font-extrabold text-slate-800">Open to all</p>
-            <p className="text-[11px] text-slate-500">Apply in a click</p>
-          </div>
-        </div>
-      </div>
 
       <div className="mt-6">
         {loading ? (
@@ -170,29 +138,23 @@ export default function EventsBrowse() {
               {events.length} opportunit{events.length === 1 ? "y" : "ies"} live
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              {events.map((ev, i) => (
+              {events.map((ev) => (
                 <Link
                   key={ev._id}
                   to={`/events/${ev._id}`}
-                  className="card card-hover stagger-in group relative overflow-hidden p-4 pl-5"
-                  style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
+                  className="card card-hover group relative overflow-hidden p-4 pl-5"
                 >
                   <div
                     className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${
                       TYPE_ACCENTS[ev.type] || TYPE_ACCENTS.OTHER
                     }`}
                   />
-                  <div
-                    className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br opacity-10 transition group-hover:opacity-20 ${
-                      TYPE_ACCENTS[ev.type] || TYPE_ACCENTS.OTHER
-                    }`}
-                  />
-                  <div className="relative flex items-start justify-between gap-2">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-brand-700">{ev.title}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-slate-800">{ev.title}</p>
                     <Badge tone="brand">{titleCase(ev.type)}</Badge>
                   </div>
-                  <p className="relative mt-1 text-xs font-medium text-slate-500">{titleCase(ev.sport)}</p>
-                  <div className="relative mt-3.5 flex items-center justify-between text-xs text-slate-400">
+                  <p className="mt-1 text-xs font-medium text-slate-500">{titleCase(ev.sport)}</p>
+                  <div className="mt-3.5 flex items-center justify-between text-xs text-slate-400">
                     <span className="flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 font-medium text-slate-600">
                       <CalendarDays size={12} /> {formatDate(ev.startDate)}
                     </span>

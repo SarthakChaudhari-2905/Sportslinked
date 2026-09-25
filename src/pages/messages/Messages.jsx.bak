@@ -28,7 +28,7 @@ export default function Messages() {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const socketRef = useRef(null);
-  const messagesListRef = useRef(null);
+  const bottomRef = useRef(null);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c._id === activeId),
@@ -141,13 +141,7 @@ export default function Messages() {
   }, [activeId]);
 
   useEffect(() => {
-    // Scroll only the message list itself into its bottom position - never
-    // the page/window - so opening a conversation can't drag the whole
-    // Messages page (or the app shell behind it) down with it.
-    const el = messagesListRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const send = async (e) => {
@@ -308,7 +302,7 @@ export default function Messages() {
                 </div>
               </header>
 
-              <div ref={messagesListRef} className="flex-1 space-y-3 overflow-y-auto p-5">
+              <div className="flex-1 space-y-3 overflow-y-auto p-5">
                 {loadingMessages ? (
                   <PageSpinner label="Loading conversation..." />
                 ) : messages.length === 0 ? (
@@ -338,6 +332,7 @@ export default function Messages() {
                     );
                   })
                 )}
+                <div ref={bottomRef} />
               </div>
 
               <form onSubmit={send} className="border-t border-slate-200 bg-white p-4">
