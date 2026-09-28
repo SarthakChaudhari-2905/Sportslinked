@@ -1,4 +1,6 @@
-﻿import { Trophy, Medal, Users, CalendarCheck } from "lucide-react";
+﻿import Logo from "../../components/brand/Logo";
+import SocialLinks from "../../components/brand/SocialLinks";
+import { Medal, Users, CalendarCheck, ShieldCheck } from "lucide-react";
 
 const points = [
   { icon: Users, text: "Build a professional athlete profile recruiters trust" },
@@ -8,33 +10,45 @@ const points = [
 
 export default function AuthShowcase() {
   return (
-    <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-900 p-12 text-white lg:flex">
-      <div className="flex items-center gap-2">
-        <Trophy size={28} />
-        <span className="text-2xl font-extrabold tracking-tight">SportLinked</span>
+    <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-950 p-12 text-white lg:flex">
+      <div className="hero-grid absolute inset-0" />
+      <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand-600/30 blur-3xl" />
+      <div className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-indigo-600/25 blur-3xl" />
+
+      <div className="relative">
+        {/* transparent white-text logo, no white box */}
+        <Logo size={64} dark />
       </div>
 
-      <div>
-        <h2 className="text-3xl font-bold leading-tight">
-          The professional network built for athletes, clubs &amp; scouts.
+      <div className="relative">
+        <h2 className="max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+          The professional network built for <span className="text-gradient">athletes</span>, clubs &amp; scouts.
         </h2>
         <ul className="mt-8 space-y-4">
           {points.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-start gap-3">
-              <span className="mt-0.5 rounded-lg bg-white/10 p-2">
+              <span className="mt-0.5 rounded-xl bg-white/10 p-2 ring-1 ring-white/10">
                 <Icon size={18} />
               </span>
-              <span className="text-sm text-brand-50">{text}</span>
+              <span className="text-sm leading-6 text-brand-50">{text}</span>
             </li>
           ))}
         </ul>
+
+        <div className="mt-10 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <ShieldCheck size={22} className="shrink-0 text-brand-300" />
+          <p className="text-sm leading-6 text-brand-50">
+            <span className="font-bold text-white">Verified profiles</span> get up to 5× more visibility from clubs and scouts.
+          </p>
+        </div>
+
+        <div className="mt-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-300">Follow SportLinked</p>
+          <SocialLinks variant="light" className="mt-3" />
+        </div>
       </div>
 
-      <p className="text-xs text-brand-200">Â© {new Date().getFullYear()} SportLinked. All rights reserved.</p>
-
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5" />
-      <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-white/5" />
+      <p className="relative text-xs text-brand-200">© {new Date().getFullYear()} SportLinked. All rights reserved.</p>
     </div>
   );
 }
-

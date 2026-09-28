@@ -4,19 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: "#eef6ff",
-          100: "#d9ebff",
-          200: "#bcdcff",
-          300: "#8ec6ff",
-          400: "#59a7ff",
-          500: "#2f83f6",
-          600: "#1c64eb",
-          700: "#164fd6",
-          800: "#1841ad",
-          900: "#193a89",
-          950: "#142654",
-        },
+      brand: {
+  50: "#eef6ff",
+  100: "#d9ebff",
+  200: "#bcdcff",
+  300: "#8ec6ff",
+  400: "#59a7ff",
+  500: "#2f83f6",
+  600: "#1c64eb",
+  700: "#164fd6",
+  800: "#1841ad",
+  900: "#193a89",
+  950: "#142654",
+},
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
